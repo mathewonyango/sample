@@ -18,12 +18,18 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Change to project directory
-        run: cd /var/www/html/app3
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/html/app3
 
       - name: Install PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
+          php-version: '8.3'
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
