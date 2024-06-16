@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-
-permissions:
-  contents: read
 
 jobs:
   deploy:
@@ -22,38 +16,15 @@ jobs:
       - name: Install PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'  # Adjust PHP version as per your project requirements
-          tools: composer    # Install Composer alongside PHP
+          php-version: '8.3'  # Adjust PHP version as needed
 
-      - name: Validate composer.json and composer.lock
-        run: composer validate --strict
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
 
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v3
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-
+      - name: Run database migrations
+        run: php artisan migrate --force
 
-      - name: Install Dependencies
-        run: |
-          composer install --prefer-dist --no-progress
+      - name: Restart Apache
+        run: sudo systemctl restart apache2  # Adjust for your web server if not Apache
 
-      - name: Set Permissions
-        run: |
-          sudo chown -R www-data:www-data /var/www/html/app1
-          sudo chmod -R 755 /var/www/html/app1
-
-      - name: SSH Deploy to Droplet
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /var/www/html/app1  # Adjust to your project directory
-            git pull origin main  # Replace `main` with your branch name
-            #php artisan migrate --force   Example Laravel command to migrate database
-            sudo systemctl restart apache2  # Restart Apache (adjust for your web server)
+      # Additional steps as needed for your deployment process
