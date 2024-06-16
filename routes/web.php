@@ -7,5 +7,5 @@ Route::get('/', function () {
 });
 
 
-Route::get('/register', 'UsersController@create')->name('register.create');
-Route::post('/register', 'UsersController@store')->name('register.store');
+Route::get('/register', 'UsersController@create')->name('register');
+Route::post('/register', 'UsersController@store')->name('register');
