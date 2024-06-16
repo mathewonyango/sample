@@ -1,39 +1,59 @@
-name: PHP Composer
+name: Deploy to DigitalOcean Droplet
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
-  build:
-
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Validate composer.json and composer.lock
-      run: composer validate --strict
+      - name: Install PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'  # Adjust PHP version as per your project requirements
+          tools: composer    # Install Composer alongside PHP
 
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v3
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
 
-    # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
-    # Docs: https://getcomposer.org/doc/articles/scripts.md
+      - name: Install Dependencies
+        run: |
+          composer install --prefer-dist --no-progress
 
-    # - name: Run test suite
-    #   run: composer run-script test
+      - name: Set Permissions
+        run: |
+          sudo chown -R www-data:www-data /var/www/html/app1
+          sudo chmod -R 755 /var/www/html/app1
+
+      - name: SSH Deploy to Droplet
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/html/app1  # Adjust to your project directory
+            git pull origin main  # Replace `main` with your branch name
+            #php artisan migrate --force   Example Laravel command to migrate database
+            sudo systemctl restart apache2  # Restart Apache (adjust for your web server)
