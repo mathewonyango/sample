@@ -1,9 +1,13 @@
-name: Deploy to DigitalOcean Droplet
+name: deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -13,18 +17,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Change to project directory
+        run: cd /var/www/html/app3
+
       - name: Install PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'  # Adjust PHP version as needed
+          php-version: '8.0'
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
+
+      - name: Set permissions for storage and cache directories
+        run: |
+          sudo chown -R www-data:www-data /var/www/html/app3/storage /var/www/html/app3/bootstrap/cache
+          sudo chmod -R 775 /var/www/html/app3/storage /var/www/html/app3/bootstrap/cache
+
+      - name: Pull latest changes from repository
+        run: git pull origin main
 
       - name: Run database migrations
         run: php artisan migrate --force
 
       - name: Restart Apache
-        run: sudo systemctl restart apache2  # Adjust for your web server if not Apache
-
-      # Additional steps as needed for your deployment process
+        run: sudo systemctl restart apache2
