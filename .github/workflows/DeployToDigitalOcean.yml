@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ssh-key: ${{ secrets.SSH_KEY }}
 
@@ -32,7 +32,7 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
+          php-version: '8.3'
 
       - name: Validate Composer
         run: composer validate --no-check-publish || { echo "Composer validation failed!"; exit 1; }
@@ -49,6 +49,7 @@ jobs:
         run: |
           php artisan config:cache
           php artisan route:cache
+          php artisan view:clear
           php artisan view:cache
 
       - name: Run Database Migrations (optional)
