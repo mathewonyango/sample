@@ -20,7 +20,7 @@ jobs:
       - name: Change to project directory
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: 64.226.65.159
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
