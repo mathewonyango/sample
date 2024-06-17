@@ -1,10 +1,10 @@
-name: deploy
+name: Deploy to DigitalOcean
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -12,38 +12,48 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: DigitalOcean
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+        with:
+          ssh-key: ${{ secrets.SSH_KEY }}
 
-      - name: Change to project directory
+      - name: SSH into Droplet and Change Directory
         uses: appleboy/ssh-action@master
         with:
-          host: 64.226.65.159
+          host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /var/www/html/app3
 
-      - name: Install PHP and Composer
+      - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.0'
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress
+      - name: Validate Composer
+        run: composer validate --no-check-publish || { echo "Composer validation failed!"; exit 1; }
 
-      - name: Set permissions for storage and cache directories
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction || { echo "Composer install failed!"; exit 1; }
+
+      - name: Set File Permissions
         run: |
           sudo chown -R www-data:www-data /var/www/html/app3/storage /var/www/html/app3/bootstrap/cache
           sudo chmod -R 775 /var/www/html/app3/storage /var/www/html/app3/bootstrap/cache
 
-      - name: Pull latest changes from repository
-        run: git pull origin main
+      - name: Execute Artisan Commands
+        run: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
 
-      - name: Run database migrations
-        run: php artisan migrate --force
+      - name: Run Database Migrations (optional)
+        if: ${{ github.event_name == 'push' }}  # Only on push, not pull_request
+        run: php artisan migrate --force || { echo "Migrations failed!"; exit 1; }
 
       - name: Restart Apache
         run: sudo systemctl restart apache2
